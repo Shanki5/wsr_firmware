@@ -79,19 +79,25 @@ void zhome() {
 void yhome() {
  int initial_yhome = 1;
  //  Set Max Speed and Acceleration of each Steppers at startup for homing
- YMOTOR.setMaxSpeed(100.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
- YMOTOR.setAcceleration(100.0);  // Set Acceleration of Stepper
+ YMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
+ YMOTOR.setAcceleration(50.0);  // Set Acceleration of Stepper
+ XMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
+ XMOTOR.setAcceleration(50.0);
  // Start Homing procedure of Stepper Motor at startup
  while (!digitalRead(YLIMIT)) {  // Make the Stepper move CCW until the switch is activated
+   XMOTOR.moveTo(initial_yhome);
    YMOTOR.moveTo(initial_yhome);  // Set the position to move to
    initial_yhome++;  // Decrease by 1 for next move if needed
+   XMOTOR.run();
    YMOTOR.run();  // Start moving the stepper
    delay(5);
  }
  YMOTOR.setCurrentPosition(0);  // Set the current position as zero for now
+ XMOTOR.setCurrentPosition(0);
  YMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
  YMOTOR.setAcceleration(50.0);  // Set Acceleration of Stepper
  YMOTOR.runToNewPosition(YOFFSET);
+ YMOTOR.setCurrentPosition(0);
 
 }
 
@@ -112,6 +118,7 @@ void xhome() {
    delay(5);
  }
  XMOTOR.setCurrentPosition(0);  // Set the current position as zero for now
+ YMOTOR.setCurrentPosition(0);
  XMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
  XMOTOR.setAcceleration(50.0);  // Set Acceleration of Stepper
  XMOTOR.runToNewPosition(XOFFSET);
