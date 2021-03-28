@@ -17,7 +17,7 @@
 //offset values for homing sequence
 int YOFFSET = -50;
 int ZOFFSET = 130;
-int XOFFSET = -30;
+int XOFFSET = -10;
 
 // new target available for each stepper
 boolean stepperNewTarget[STEPPER_COUNT] = {false, false, false};
@@ -122,6 +122,7 @@ void xhome() {
  XMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
  XMOTOR.setAcceleration(50.0);  // Set Acceleration of Stepper
  XMOTOR.runToNewPosition(XOFFSET);
+ YMOTOR.runToNewPosition(-50);
 
 }
 void setup(){
@@ -140,6 +141,8 @@ void setup(){
   zhome();
   yhome();
   xhome();
+  XMOTOR.setCurrentPosition(255);
+  YMOTOR.setCurrentPosition(-510);
   
 }
 
