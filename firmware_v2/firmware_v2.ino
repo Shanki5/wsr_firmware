@@ -1,7 +1,7 @@
 //include necessary libraries
 #include <AccelStepper.h>
 #include <ros.h>
-#include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/String.h>
 
 
 //define names for pins
@@ -15,9 +15,10 @@
 
 
 //offset values for homing sequence
-int YOFFSET = -50;
-int ZOFFSET = 130;
-int XOFFSET = -10;
+#define YOFFSET -50
+#define YOFFSET2 -60
+#define ZOFFSET 0
+#define XOFFSET -10
 
 // new target available for each stepper
 boolean stepperNewTarget[STEPPER_COUNT] = {false, false, false};
@@ -35,26 +36,61 @@ AccelStepper ZMOTOR(1, 4, 7);
 ros::NodeHandle nh;
 
 //ros callback function
-void motors_cb(const std_msgs::Float64MultiArray& cmd_msg) {
-  int f;
+void motors_cb(const std_msgs::String& cmd_msg) {
+  int f = 0;
   double angle;
-  for(f=0; f < STEPPER_COUNT; f++) {
-    angle = cmd_msg.data[f];
-    if(angle != stepperTarget[f]) {
+  char* token = strtok((char*)cmd_msg.data, ",");
+  while(token != NULL)
+  {
+    angle = atof(token);
+    if(f == 3)
+    {
+      if(angle == 1.0)
+      {
+        digitalWrite(13,HIGH);
+      }
+      else
+      {
+        digitalWrite(13,LOW);
+      }
+    }
+    else if(angle != stepperTarget[f])
+    {
       stepperTarget[f] = angle;
-      stepperNewTarget[f] = true;  
-      char result[8]; // Buffer big enough for 7-character float
-      char log_msg[10];
-      dtostrf(angle, 6, 2, result); // Leave room for too large numbers!
-      sprintf(log_msg,"angle =%s", result);
-      nh.loginfo(log_msg);
-    }    
+      stepperNewTarget[f] = true;
+    }
+    char result[8]; // Buffer big enough for 7-character float
+    char log_msg[10];
+    dtostrf(angle, 6, 2, result); // Leave room for too large numbers!
+    sprintf(log_msg,"angle =%s", result);
+    nh.loginfo(log_msg);
+    f++;
+    token = strtok(NULL, ",");
   }
+//  for(f=0; f < STEPPER_COUNT; f++) {
+//    
+//    angle = cmd_msg.data[f];
+//    if(angle != stepperTarget[f]) {
+//      stepperTarget[f] = angle;
+//      stepperNewTarget[f] = true;  
+//      char result[8]; // Buffer big enough for 7-character float
+//      char log_msg[10];
+//      dtostrf(angle, 6, 2, result); // Leave room for too large numbers!
+//      sprintf(log_msg,"angle =%s", result);
+//      nh.loginfo(log_msg);
+//    }    
+//  }
 }
 
 
+
+
 // Subscriber node declaration, specifies the topic to which subscribe and the callback funtion
-ros::Subscriber<std_msgs::Float64MultiArray> sub("joint_states", motors_cb);
+ros::Subscriber<std_msgs::String> sub("joint_states", motors_cb);
+
+
+std_msgs::String controller_status_msg;
+ros::Publisher control_status_pub("controller_status", &controller_status_msg);
 
 
 void zhome() {
@@ -122,27 +158,33 @@ void xhome() {
  XMOTOR.setMaxSpeed(50.0);      // Set Max Speed of Stepper (Slower to get better accuracy)
  XMOTOR.setAcceleration(50.0);  // Set Acceleration of Stepper
  XMOTOR.runToNewPosition(XOFFSET);
- YMOTOR.runToNewPosition(-50);
+ YMOTOR.runToNewPosition(YOFFSET2);
 
 }
 void setup(){
-  // ros setup
-  nh.getHardware()->setBaud(115200); 
-  nh.initNode();
-  nh.subscribe(sub);
+
 
   
   pinMode(shield_en, OUTPUT);
+  pinMode(13, OUTPUT);
   digitalWrite(shield_en,LOW);
-  delay(5);
+
   pinMode(ZLIMIT, INPUT_PULLUP);
   pinMode(YLIMIT, INPUT_PULLUP);
   pinMode(XLIMIT, INPUT_PULLUP);
+
+  delay(5);
   zhome();
   yhome();
   xhome();
   XMOTOR.setCurrentPosition(255);
   YMOTOR.setCurrentPosition(-510);
+  // ros setup
+  nh.getHardware()->setBaud(115200); 
+  nh.initNode();
+  nh.subscribe(sub);
+
+  nh.advertise(control_status_pub);
   
 }
 
@@ -201,6 +243,15 @@ void loop(){
   processX();
   processY();
   processZ();
+  if(Xmoving || Ymoving || Zmoving)
+  {
+    controller_status_msg.data = "1"; 
+  }
+  else
+  {
+    controller_status_msg.data = "0";   
+  }
+  control_status_pub.publish(&controller_status_msg);
   nh.spinOnce();
-  delay(1);  
+  delay(10);  
 }
